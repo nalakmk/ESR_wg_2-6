@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>English Story Reader</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Poppins:wght@400;600&display=swap');
+
+        :root {
+            --primary-color: #3498db;
+            --secondary-color: #2ecc71;
+            --dark-bg: #2c3e50;
+            --light-bg: #ffffff;
+            --text-color: #333;
+        }
+
+        body {
+            font-family: 'Poppins', 'Noto Sans KR', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px 20px 180px 20px;
+            background: linear-gradient(135deg, #e0f7fa 0%, #bbdefb 100%);
+            color: var(--text-color);
+        }
+        .container {
+            background-color: var(--light-bg);
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+            width: 100%;
+            max-width: 700px;
+            box-sizing: border-box;
+            margin-top: 20px;
+        }
+        h1, h2 {
+            color: var(--dark-bg);
+            text-align: center;
+        }
+        h1 { margin-bottom: 20px; font-size: 2.2em; font-weight: 700; }
+        h2 { margin-bottom: 10px; font-size: 1.2em; border-bottom: 2px solid #eee; padding-bottom: 10px;}
+
+        select, input[type="text"] {
+            padding: 12px; margin: 10px 0 20px 0; width: 100%; font-size: 17px; border: 1px solid #a7d9ed; border-radius: 8px; box-sizing: border-box; background-color: #f8fcff;
+        }
+        select:focus, input[type="text"]:focus {
+            border-color: var(--primary-color); box-shadow: 0 0 8px rgba(52, 152, 219, 0.3); outline: none;
+        }
+        
+        button {
+            padding: 12px 20px; margin: 5px; font-size: 16px; font-weight: 600; color: white; border: none; border-radius: 8px; cursor: pointer; transition: all 0.2s ease;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.2);
+        }
+        button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        button:disabled {
+            background-color: #cccccc !important; color: #666 !important; cursor: not-allowed; box-shadow: none; transform: none;
+        }
+
+        /* Start Screen */
+        #startScreen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #e0f7fa 0%, #bbdefb 100%); display: flex; justify-content: center; align-items: center; flex-direction: column; z-index: 2000; padding: 20px; box-sizing: border-box;
+        }
+        #logo-container { margin-bottom: 20px; }
+        #logo-container img { max-width: 180px; height: auto; }
+        #startScreen h1 { font-size: 2.5em; text-shadow: 2px 2px 4px rgba(0,0,0,0.1); margin-bottom: 30px; }
+        #levelDisplayStart { font-weight: 600; font-size: 1.3em; color: #2c3e50; background-color: #fff; margin-bottom: 25px; padding: 8px 18px; border-radius: 8px; display: inline-block; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        #startScreen input { max-width: 350px; }
+        #startButton { max-width: 350px; width:100%; background-color: var(--primary-color); }
+        
+        /* Training Mode Selection */
+        #mode-selection {
+            display: none; flex-direction: column; gap: 10px; margin-top: 20px; margin-bottom: 20px;
+        }
+        #mode-btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .mode-btn { width: 100%; margin: 0; }
+
+        .mode-btn[data-mode="1"] { background-color: #2ecc71; }
+        .mode-btn[data-mode="2"] { background-color: #3498db; }
+        .mode-btn[data-mode="3"] { background-color: #9b59b6; }
+        .mode-btn[data-mode="4"] { background-color: #f39c12; }
+
+        /* Story Display */
+        #storyDisplay {
+            margin-top: 15px; padding: 20px; border: 1px solid #cee7f5; border-radius: 10px; min-height: 250px; font-size: 1.15em; line-height: 1.8; background-color: #fdfdfd; box-shadow: inset 0 1px 5px rgba(0,0,0,0.05);
+        }
+        .sentence-group {
+            margin-bottom: 15px; border-bottom: 1px dashed #e0e0e0; padding-bottom: 10px; display: flex; align-items: baseline;
+        }
+        .sentence-group:last-child { border-bottom: none; }
+        .sentence-number { font-weight: bold; color: var(--secondary-color); margin-right: 8px; font-size: 0.9em; opacity: 0.8; }
+        .korean-translation-text { color: #78909c; font-size: 0.9em; font-style: italic; margin-left: 2px; }
+        
+        .hidden { display: none !important; }
+        .english-chunk-text.hidden-english { visibility: hidden; }
+        .chunk-divider { color: #b0bec5; margin: 0 6px; }
+        .current-chunk-highlight { background-color: #ffecb3; padding: 3px 7px; border-radius: 5px; }
+        
+        #status {
+            text-align: center; margin: 15px 0; padding: 10px; font-weight: 600; color: #fff; background-color: #85c1e9; border-radius: 8px; font-size: 1.1em;
+            text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000;
+        }
+
+        /* Fixed Bottom Controls */
+        #bottom-controls-wrapper {
+            position: fixed; bottom: 0; left: 0; width: 100%; z-index: 1000; box-shadow: 0 -5px 15px rgba(0,0,0,0.2);
+        }
+        #timer-container {
+            display: none; justify-content: space-between; align-items: center; padding: 10px 20px; background-color: #34495e; box-sizing: border-box; width: 100%;
+        }
+        #timer-display-label { font-weight: 600; font-size: 1em; color: #ecf0f1; margin-right: auto;}
+        #stopwatch { font-family: 'Courier New', Courier, monospace; font-size: 1.1em; color: #58d68d; }
+        #timer-buttons { display: flex; gap: 10px; }
+        .timer-button { padding: 8px 12px; font-size: 14px; }
+        #startSessionBtn { background-color: var(--secondary-color); }
+        #stopSessionBtn { background-color: #e74c3c; }
+        #playRecordingBtn { background-color: var(--primary-color); }
+        #sendDataBtn { background-color: #8e44ad; } 
+
+        .fixed-controls {
+            background-color: var(--dark-bg); padding: 12px 20px; display: flex; justify-content: space-around; align-items: center; gap: 10px;
+        }
+        .fixed-controls button {
+            width: auto; flex-grow: 1; margin: 0; padding: 12px 8px; font-size: 15px; border-radius: 8px;
+        }
+        .fixed-controls button#backBtn { background-color: #f39c12; }
+        .fixed-controls button#nextBtn { background-color: var(--secondary-color); }
+        #mode3AnswerBtn { background-color: #9b59b6; }
+    </style>
+</head>
+<body>
+    <div id="startScreen">
+        <div id="logo-container">
+            <img src="mainlogo.png" alt="Academy Logo" style="max-width:180px; height:auto;">
+        </div>
+        <h1>English Story Reader!</h1>
+        <div id="levelDisplayStart">
+            </div>
+        <input type="text" id="userNameInput" placeholder="Your Name">
+        <button id="startButton">Start Learning</button>
+    </div>
+
+    <div class="container">
+        <h1 id="mainTitle">English Story Reader</h1> 
+        
+        <label for="storySelect">Choose a story:</label>
+        <select id="storySelect">
+            <option value="">-- Select a story --</option>
+            <option value="family_picnic">A Perfect Family Picnic</option>
+            <option value="bravery_at_the_pool">Bravery at the Pool</option>
+            <option value="the_worry_stone">The Worry Stone</option>
+        </select>
+        
+        <div id="mode-selection" style="display: none;">
+            <h2>학습 모드 선택</h2>
+            <div id="mode-btn-group">
+                <button class="mode-btn" data-mode="1">1. 듣고 따라 말하기</button>
+                <button class="mode-btn" data-mode="2">2. 해석보며 듣고 말하기</button>
+                <button class="mode-btn" data-mode="3">3. 듣고 해석 말하기</button>
+                <button class="mode-btn" data-mode="4">4. 한글보고 영어로 말하기</button>
+            </div>
+        </div>
+        
+        <label for="speedControl">Reading speed:</label>
+        <input type="range" id="speedControl" min="0.5" max="2" step="0.1" value="1">
+        <span id="speedValue">1x</span>
+        
+        <div id="status">Please select a story to begin.</div>
+        <div id="storyDisplay"></div>
+    </div>
+    
+    <div id="bottom-controls-wrapper">
+        <div id="timer-container">
+            <div id="timer-display-label">학습 시간: <span id="stopwatch">00:00</span></div>
+            <div id="timer-buttons">
+                <button id="startSessionBtn" class="timer-button">● 학습 시작</button>
+                <button id="stopSessionBtn" class="timer-button">■ 읽기 완료</button>
+                <button id="playRecordingBtn" class="timer-button">▶ 녹음 듣기</button>
+                <button id="sendDataBtn" class="timer-button">전송</button>
+            </div>
+        </div>
+        <div class="fixed-controls">
+            <button id="backBtn">Back Part</button>
+            <button id="mode3AnswerBtn">해석 확인</button>
+            <button id="nextBtn">Next Part</button>
+        </div>
+    </div>
+
+    <script>
+        const stories = {
+            family_picnic: {
+                genre: "Memories / Family",
+                level: "ESR Level 2-6", 
+                sentences: [ 
+                    { parts: [ { english: "My favorite memory from last summer", korean: "지난여름 가장 좋아하는 기억은" }, { english: "was our family picnic.", korean: "우리 가족 소풍이었어요." } ] },
+                    { parts: [ { english: "We went to a big park", korean: "우리는 큰 공원에 갔어요" }, { english: "near the lake.", korean: "호수 근처에 있는." } ] },
+                    { parts: [ { english: "My dad grilled hot dogs,", korean: "아빠는 핫도그를 구웠고," }, { english: "and my mom made a delicious salad.", korean: "엄마는 맛있는 샐러드를 만들었어요." } ] },
+                    { parts: [ { english: "After eating,", korean: "식사 후에," }, { english: "my brother and I", korean: "남동생(형)과 나는" }, { english: "rented a paddle boat.", korean: "페달 보트를 빌렸어요." } ] },
+                    { parts: [ { english: "We laughed so much", korean: "우리는 많이 웃었어요" }, { english: "as we floated on the water.", korean: "물 위를 떠다니면서." } ] },
+                    { parts: [ { english: "It was a perfect day,", korean: "완벽한 날이었어요," }, { english: "full of sunshine and fun.", korean: "햇살과 재미로 가득 찬." } ] }
+                ]
+            },
+            bravery_at_the_pool: {
+                genre: "Personal Growth / Memories",
+                level: "ESR Level 2-6", 
+                sentences: [
+                    { parts: [ { english: "I used to be scared of swimming", korean: "나는 수영하는 것을 무서워했었어요" }, { english: "in the deep end of the pool.", korean: "수영장 깊은 쪽에서." } ] },
+                    { parts: [ { english: "One day,", korean: "어느 날," }, { english: "my swimming instructor showed me", korean: "수영 강사님이 나에게 보여줬어요" }, { english: "a new way to float.", korean: "뜨는 새로운 방법을." } ] },
+                    { parts: [ { english: "I practiced and practiced.", korean: "나는 연습하고 또 연습했어요." } ] },
+                    { parts: [ { english: "Even though I was nervous,", korean: "비록 긴장했지만," }, { english: "I slowly swam to the deep end.", korean: "나는 천천히 깊은 쪽으로 헤엄쳐 갔어요." } ] },
+                    { parts: [ { english: "When I touched the other side,", korean: "반대편에 닿았을 때," }, { english: "I felt so brave and proud.", korean: "나는 정말 용감하고 자랑스러웠어요." } ] },
+                    { parts: [ { english: "I learned that trying new things", korean: "나는 새로운 것을 시도하는 것이" }, { english: "can be scary but rewarding.", korean: "무서울 수 있지만 보람 있다는 것을 배웠어요." } ] }
+                ]
+            },
+            the_worry_stone: {
+                genre: "Family / Memories",
+                level: "ESR Level 2-6", 
+                sentences: [
+                    { parts: [ { english: "For my birthday,", korean: "내 생일에," }, { english: "my grandfather gave me", korean: "할아버지가 나에게 주셨어요" }, { english: "a small, wooden box.", korean: "작고, 나무로 된 상자를." } ] },
+                    { parts: [ { english: "It looked old and plain.", korean: "그것은 낡고 평범해 보였어요." } ] },
+                    { parts: [ { english: "Inside, there was", korean: "안에는, 있었어요" }, { english: "a tiny, smooth stone.", korean: "작고, 매끄러운 돌이." } ] },
+                    { parts: [ { english: "My grandfather told me", korean: "할아버지는 나에게 말했어요" }, { english: "it was a 'worry stone'", korean: "그것이 '걱정 돌'이라고" }, { english: "from his childhood.", korean: "그의 어린 시절로부터 온." } ] },
+                    { parts: [ { english: "He said whenever I felt sad or worried,", korean: "그는 내가 슬프거나 걱정될 때마다," }, { english: "I could hold it.", korean: "그것을 쥘 수 있다고 말했어요." } ] },
+                    { parts: [ { english: "It wasn't just a stone;", korean: "그것은 단지 돌이 아니었어요;" }, { english: "it was a reminder of his love and wisdom.", korean: "그것은 그의 사랑과 지혜를 떠올리게 하는 것이었어요." } ] }
+                ]
+            }
+        };
+
+        const startScreen = document.getElementById('startScreen');
+        const userNameInput = document.getElementById('userNameInput');
+        const startButton = document.getElementById('startButton');
+        const mainTitle = document.getElementById('mainTitle');
+        const storySelect = document.getElementById('storySelect');
+        const modeSelectionContainer = document.getElementById('mode-selection');
+        const modeButtons = document.querySelectorAll('.mode-btn');
+        const storyDisplay = document.getElementById('storyDisplay');
+        const statusDisplay = document.getElementById('status');
+        const speedControl = document.getElementById('speedControl');
+        const speedValue = document.getElementById('speedValue');
+        const levelDisplayStart = document.getElementById('levelDisplayStart');
+
+        const timerContainer = document.getElementById('timer-container');
+        const stopwatchDisplay = document.getElementById('stopwatch');
+        const startSessionBtn = document.getElementById('startSessionBtn');
+        const stopSessionBtn = document.getElementById('stopSessionBtn');
+        const playRecordingBtn = document.getElementById('playRecordingBtn');
+        const sendDataBtn = document.getElementById('sendDataBtn');
+        const backBtn = document.getElementById('backBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const mode3AnswerBtn = document.getElementById('mode3AnswerBtn');
+
+        // --- STATE VARIABLES ---
+        let currentStoryData = { sentences: [] };
+        let currentSentenceIndex = 0;
+        let currentPartIndexInSentence = 0;
+        let currentMode = 1;
+        let isAnswerRevealed = false;
+        let userName = "";
+        
+        let speech = new SpeechSynthesisUtterance();
+        speech.lang = 'en-US';
+
+        let timerInterval = null;
+        let startTime = 0;
+        let isTimerRunning = false;
+
+        let mediaRecorder;
+        let audioChunks = [];
+        let recordedAudioURL = null;
+        let mediaStream = null;
+        let recordedAudioPlayer = null; 
+
+        // --- EVENT LISTENERS ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const firstStoryKey = Object.keys(stories)[0];
+            if(firstStoryKey) {
+                const firstStory = stories[firstStoryKey];
+                if(levelDisplayStart && firstStory.level) {
+                    const levelParts = firstStory.level.split(' '); // "ESR Level 2-6" -> ["ESR", "Level", "2-6"]
+                    const levelText = levelParts.slice(0, 2).join(' '); // "ESR Level"
+                    const levelNumber = levelParts[2]; // "2-6"
+                    
+                    let numberColor = '#F08080'; // 기본값 (연한 빨간색)
+                    if (levelNumber.startsWith('2')) {
+                        numberColor = '#2ecc71'; // 레벨 2는 초록색
+                    }
+                    
+                    levelDisplayStart.innerHTML = `${levelText} <span style="color: ${numberColor};">${levelNumber}</span>`;
+                }
+            }
+            updateButtonStates();
+        });
+
+        startButton.addEventListener('click', enterApp);
+        storySelect.addEventListener('change', loadStory);
+        startSessionBtn.addEventListener('click', startSession);
+        stopSessionBtn.addEventListener('click', stopSession);
+        playRecordingBtn.addEventListener('click', toggleRecordingPlayback);
+        sendDataBtn.addEventListener('click', sendData); 
+        nextBtn.addEventListener('click', handleNext);
+        backBtn.addEventListener('click', () => navigatePart(-1));
+        mode3AnswerBtn.addEventListener('click', revealAnswer);
+        modeButtons.forEach(btn => btn.addEventListener('click', (e) => setMode(e.target)));
+        speedControl.addEventListener('input', () => {
+            speech.rate = parseFloat(speedControl.value);
+            speedValue.textContent = speedControl.value + 'x';
+        });
+
+        // --- INITIALIZATION ---
+        function enterApp() {
+            userName = userNameInput.value.trim();
+            if (userName === "") { alert("Please enter your name!"); return; }
+            startScreen.style.display = 'none';
+            mainTitle.textContent = `${userName}' English Story Reader `;
+        }
+
+        function loadStory() {
+            const storyId = storySelect.value;
+            resetSession(); 
+
+            if (storyId && stories[storyId]) {
+                currentStoryData = stories[storyId];
+                modeSelectionContainer.style.display = 'block';
+                timerContainer.style.display = 'flex';
+                setMode(document.querySelector('.mode-btn.active') || document.querySelector('.mode-btn[data-mode="1"]'));
+            } else {
+                currentStoryData = { sentences: [] };
+                modeSelectionContainer.style.display = 'none';
+                timerContainer.style.display = 'none';
+                storyDisplay.innerHTML = '';
+                statusDisplay.textContent = "Please select a story to begin.";
+                updateButtonStates();
+            }
+        }
+
+      function setMode(clickedButton) {
+    if (isTimerRunning) stopSession(); 
+    
+    currentMode = parseInt(clickedButton.dataset.mode, 10);
+    modeButtons.forEach(btn => btn.classList.remove('active'));
+    clickedButton.classList.add('active');
+    
+    // ▼ 모드 변경 시 상태를 완전히 초기화하고 화면을 다시 그립니다.
+    resetSession(); // isAnswerRevealed가 여기서 false로 초기화됨
+    currentSentenceIndex = 0;
+    currentPartIndexInSentence = 0;
+    
+    setupUIForMode();
+    displayStory(); // 초기화된 상태로 화면을 그림
+}
+        
+        function setupUIForMode() {
+            mode3AnswerBtn.style.display = 'none';
+            nextBtn.style.display = 'inline-flex';
+            
+            const hasStory = storySelect.value !== "";
+            if (!hasStory) return;
+
+            let statusText = "";
+            switch(currentMode) {
+                case 1: statusText = "모드 1: '학습 시작'을 누르고, 영어를 듣고 따라 말하세요."; break;
+                case 2: statusText = "모드 2: 해석을 보면서 영어를 듣고 따라 말하세요."; break;
+                case 3:
+                    mode3AnswerBtn.style.display = 'inline-flex';
+                    statusText = "모드 3: 영어를 듣고 해석을 말해본 후, '해석 확인'을 누르세요.";
+                    break;
+                case 4: statusText = "모드 4: 한글을 보고 영어로 말해본 후, '정답 확인'을 누르세요."; break;
+            }
+            statusDisplay.textContent = statusText;
+            updateButtonStates();
+        }
+
+       function displayStory() {
+    storyDisplay.innerHTML = '';
+    if (!currentStoryData.sentences || currentStoryData.sentences.length === 0) return;
+
+    currentStoryData.sentences.forEach((sentence, sentenceIndex) => {
+        const sentenceGroup = document.createElement('div');
+        sentenceGroup.classList.add('sentence-group');
+
+        const sentenceNumberSpan = document.createElement('span');
+        sentenceNumberSpan.textContent = `${sentenceIndex + 1}.`;
+        sentenceNumberSpan.classList.add('sentence-number');
+        sentenceGroup.appendChild(sentenceNumberSpan);
+
+        const chunksWrapper = document.createElement('div');
+        chunksWrapper.style.cssText = 'display: inline-block; vertical-align: top; width: calc(100% - 35px);';
+
+        sentence.parts.forEach((part, partIndex) => {
+            const isCurrent = (sentenceIndex === currentSentenceIndex && partIndex === currentPartIndexInSentence);
+            
+            const chunkPairContainer = document.createElement('span'); 
+            chunkPairContainer.classList.add('chunk-pair-container');
+            
+            const englishSpan = document.createElement('span');
+            englishSpan.textContent = part.english;
+            englishSpan.classList.add('english-chunk-text');
+            
+            const koreanSpan = document.createElement('span');
+            koreanSpan.textContent = ` (${part.korean})`;
+            koreanSpan.classList.add('korean-translation-text');
+
+            // --- [핵심 수정] 모드별 표시/숨김 로직 ---
+            if (currentMode === 1) {
+                koreanSpan.classList.add('hidden');
+            } else if (currentMode === 3) {
+                if (!isCurrent || (isCurrent && !isAnswerRevealed)) {
+                    koreanSpan.classList.add('hidden');
+                }
+            } else if (currentMode === 4) {
+                // 4번 모드: 먼저 영어를 숨기고, 정답 확인 시에만 보여줍니다.
+                englishSpan.classList.add('hidden-english');
+                if (isCurrent && isAnswerRevealed) {
+                    englishSpan.classList.remove('hidden-english');
+                }
+            }
+            
+            if (isCurrent) {
+                chunkPairContainer.classList.add('current-chunk-highlight');
+            }
+
+            chunkPairContainer.appendChild(englishSpan);
+            chunkPairContainer.appendChild(koreanSpan);
+            chunksWrapper.appendChild(chunkPairContainer);
+            
+            if (partIndex < sentence.parts.length - 1) {
+                const divider = document.createElement('span');
+                divider.textContent = ' / ';
+                divider.classList.add('chunk-divider');
+                chunksWrapper.appendChild(divider);
+            }
+        });
+        sentenceGroup.appendChild(chunksWrapper);
+        storyDisplay.appendChild(sentenceGroup);
+    });
+    
+    const currentHighlightElement = storyDisplay.querySelector('.current-chunk-highlight');
+    if (currentHighlightElement) {
+        currentHighlightElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+}
+
+        // --- NAVIGATION & PLAYBACK ---
+        function playCurrentPart() {
+            window.speechSynthesis.cancel(); 
+            if (!isTimerRunning) return;
+
+            const partToSpeak = currentStoryData.sentences[currentSentenceIndex].parts[currentPartIndexInSentence].english;
+            speech.text = partToSpeak;
+            window.speechSynthesis.speak(speech);
+        }
+
+        function handleNext() {
+            if (currentMode === 4) {
+                if (!isAnswerRevealed) {
+                    revealAnswer();
+                    nextBtn.textContent = '다음 문제';
+                } else {
+                    navigatePart(1);
+                }
+            } else {
+                navigatePart(1);
+            }
+        }
+        
+        function navigatePart(direction) {
+             if (!isTimerRunning) return;
+             isAnswerRevealed = false;
+             if (currentMode === 4) nextBtn.textContent = '정답 확인';
+
+            const isForward = direction === 1;
+            let sentence = currentStoryData.sentences[currentSentenceIndex];
+
+            if (isForward) {
+                if (currentPartIndexInSentence < sentence.parts.length - 1) {
+                    currentPartIndexInSentence++;
+                } else if (currentSentenceIndex < currentStoryData.sentences.length - 1) {
+                    currentSentenceIndex++;
+                    currentPartIndexInSentence = 0;
+                } else {
+                    stopSession(); 
+                    statusDisplay.textContent = `모든 학습 완료! 최종 시간: ${stopwatchDisplay.textContent}`;
+                    nextBtn.disabled = true;
+                    return;
+                }
+            } else { // Backward
+                if (currentPartIndexInSentence > 0) {
+                    currentPartIndexInSentence--;
+                } else if (currentSentenceIndex > 0) {
+                    currentSentenceIndex--;
+                    currentPartIndexInSentence = currentStoryData.sentences[currentSentenceIndex].parts.length - 1;
+                }
+            }
+            
+            displayStory();
+            if (currentMode !== 4) playCurrentPart();
+            updateButtonStates();
+        }
+
+        function revealAnswer() {
+            if (!isTimerRunning) return;
+            isAnswerRevealed = true;
+            displayStory();
+            if (currentMode === 4) playCurrentPart();
+        }
+        
+     // --- DATA SEND FUNCTION ---
+function sendData() {
+    // 1. 전송할 녹음 데이터가 있는지 확인합니다.
+    if (!recordedAudioURL) {
+        alert("전송할 녹음 데이터가 없습니다. 먼저 학습을 완료해주세요.");
+        return;
+    }
+
+    // 2. Apps Script 웹 앱 URL을 설정합니다. (보내주신 주소로 적용됨)
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwymaXNEt4J-84X6Rgm_29d3ynDw_enOIJ9n10kWyRyyjmbw0RMip0_LH5OF0A_HweS/exec';
+
+    // 3. 구글 시트로 보낼 데이터 객체를 생성합니다.
+    const dataToSend = {
+        name: userName,
+        level: currentStoryData.level,
+        time: stopwatchDisplay.textContent,
+        storyTitle: storySelect.options[storySelect.selectedIndex].text,
+        mode: currentMode
+    };
+
+    // 4. 전송 버튼을 비활성화하고 텍스트를 변경하여 중복 전송을 방지합니다.
+    sendDataBtn.disabled = true;
+    sendDataBtn.textContent = '전송 중...';
+
+    // 5. fetch API를 사용하여 Apps Script로 데이터를 비동기 전송합니다.
+    fetch(SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        cache: 'no-cache',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        redirect: 'follow',
+        body: JSON.stringify(dataToSend)
+    })
+    .then(res => {
+        // 성공적으로 전송되었을 때
+        alert(`${userName}님의 학습 데이터가 성공적으로 전송되었습니다!`);
+        statusDisplay.textContent = "학습 데이터가 성공적으로 전송되었습니다.";
+        sendDataBtn.textContent = '전송 완료';
+    })
+    .catch(err => {
+        // 에러가 발생했을 때
+        console.error('Error sending data:', err);
+        alert('데이터 전송 중 오류가 발생했습니다. 관리자에게 문의하세요.');
+        sendDataBtn.disabled = false; // 에러 시 다시 시도할 수 있도록 버튼 활성화
+        sendDataBtn.textContent = '전송';
+    });
+}
+
+
+        // --- SESSION, TIMER & RECORDER ---
+        async function startSession() {
+            try {
+                mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                
+                audioChunks = [];
+                mediaRecorder = new MediaRecorder(mediaStream);
+                mediaRecorder.start();
+                mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+                mediaRecorder.onstop = () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                    recordedAudioURL = URL.createObjectURL(audioBlob);
+                    playRecordingBtn.disabled = false;
+                    sendDataBtn.disabled = false;
+                    if (mediaStream) mediaStream.getTracks().forEach(track => track.stop());
+                };
+
+                isTimerRunning = true;
+                startTime = Date.now();
+                updateTimer(); 
+                timerInterval = setInterval(updateTimer, 1000);
+                
+                if (currentMode !== 4) playCurrentPart();
+
+                displayStory();
+                updateButtonStates(); 
+
+            } catch(err) {
+                console.error("Mic access error:", err);
+                alert("마이크 사용 권한이 필요합니다. 브라우저 설정에서 마이크를 허용해주세요.");
+                resetSession();
+            }
+        }
+
+        function stopSession() {
+            if (!isTimerRunning) return;
+            clearInterval(timerInterval);
+            isTimerRunning = false;
+            
+            const finalTime = stopwatchDisplay.textContent;
+            statusDisplay.textContent = `학습 완료! 총 소요 시간: ${finalTime}. 녹음 내용을 들어보거나 전송할 수 있습니다.`;
+            
+            if (mediaRecorder && mediaRecorder.state === "recording") mediaRecorder.stop();
+            if (recordedAudioPlayer) {
+                recordedAudioPlayer.pause();
+                recordedAudioPlayer.currentTime = 0;
+            }
+            
+            window.speechSynthesis.cancel();
+            updateButtonStates();
+        }
+
+        function toggleRecordingPlayback() {
+            if (recordedAudioPlayer && !recordedAudioPlayer.paused) {
+                recordedAudioPlayer.pause();
+                recordedAudioPlayer.currentTime = 0;
+                playRecordingBtn.textContent = '▶ 녹음 듣기';
+                return;
+            }
+
+            if (recordedAudioURL) {
+                recordedAudioPlayer = new Audio(recordedAudioURL);
+                recordedAudioPlayer.play();
+                playRecordingBtn.textContent = '■ 재생 중지';
+                
+                recordedAudioPlayer.onended = () => {
+                    playRecordingBtn.textContent = '▶ 녹음 듣기';
+                };
+            }
+        }
+        
+        function updateTimer() {
+            const elapsedTime = Math.floor((Date.now() - startTime) / 1000);
+            const minutes = String(Math.floor(elapsedTime / 60)).padStart(2, '0');
+            const seconds = String(elapsedTime % 60).padStart(2, '0');
+            stopwatchDisplay.textContent = `${minutes}:${seconds}`;
+        }
+        
+        function resetSession() {
+            clearInterval(timerInterval);
+            isTimerRunning = false;
+            stopwatchDisplay.textContent = '00:00';
+            
+            if (recordedAudioPlayer) recordedAudioPlayer.pause();
+            if (mediaRecorder && mediaRecorder.state === "recording") mediaRecorder.stop();
+            if (mediaStream) mediaStream.getTracks().forEach(track => track.stop());
+            
+            audioChunks = [];
+            if (recordedAudioURL) {
+                URL.revokeObjectURL(recordedAudioURL);
+                recordedAudioURL = null;
+            }
+            
+            isAnswerRevealed = false;
+            playRecordingBtn.textContent = '▶ 녹음 듣기';
+            updateButtonStates();
+        }
+
+        // --- UI & STATE MANAGEMENT ---
+        function updateButtonStates() {
+            const hasStory = storySelect.value !== "";
+
+            startSessionBtn.disabled = !hasStory || isTimerRunning;
+            stopSessionBtn.disabled = !isTimerRunning;
+            playRecordingBtn.disabled = isTimerRunning || !recordedAudioURL;
+            sendDataBtn.disabled = isTimerRunning || !recordedAudioURL;
+
+            backBtn.disabled = !isTimerRunning || (currentSentenceIndex === 0 && currentPartIndexInSentence === 0);
+            nextBtn.disabled = !isTimerRunning;
+            mode3AnswerBtn.disabled = !isTimerRunning;
+            
+            if (currentMode !== 4) nextBtn.textContent = 'Next Part';
+
+            if (isTimerRunning) {
+                const lastSentenceIdx = currentStoryData.sentences.length - 1;
+                const lastPartInLastSentence = currentStoryData.sentences[lastSentenceIdx].parts.length - 1;
+                if (currentSentenceIndex === lastSentenceIdx && currentPartIndexInSentence === lastPartInLastSentence) {
+                    if (currentMode !== 4 || (currentMode === 4 && isAnswerRevealed)) {
+                        nextBtn.disabled = true;
+                    }
+                }
+            } else {
+                 if (!hasStory || recordedAudioURL) { 
+                    nextBtn.disabled = true;
+                    backBtn.disabled = true;
+                    mode3AnswerBtn.disabled = true;
+                 }
+            }
+        }
+    </script>
+</body>
+</html>
